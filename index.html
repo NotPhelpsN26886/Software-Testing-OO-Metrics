@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Python OO Metrics</title>
+</head>
+<body>
+  <h1>Python OO Metrics Calculator</h1>
+
+  <form id="metricsForm">
+    <textarea id="codeInput" rows="20" cols="90" placeholder="Paste Python code here..."></textarea>
+    <br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <pre id="result"></pre>
+
+  <script>
+    document.getElementById('metricsForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const codeInput = document.getElementById('codeInput');
+      const resultBox = document.getElementById('result');
+      const source = codeInput.value.trim();
+
+      if (!source) {
+        resultBox.textContent = 'Please enter Python code.';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/metrics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ code: source })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          resultBox.textContent = data.error || 'Invalid Python indentation or syntax.';
+          return;
+        }
+
+        const results = data.results || {};
+
+        if (!Object.keys(results).length) {
+          resultBox.textContent = 'No metrics available. Please enter at least one class definition.';
+          return;
+        }
+
+        const lines = [];
+        for (const className in results) {
+          const metrics = results[className];
+          lines.push(className + ':');
+          lines.push('  WMC = ' + metrics.WMC);
+          lines.push('  Cohesion = ' + metrics.LCOM);
+          lines.push('  RFC = ' + metrics.RFC);
+          lines.push('  Coupling = ' + JSON.stringify(metrics.COUPLING));
+          lines.push('');
+        }
+
+        resultBox.textContent = lines.join('\n');
+      } catch (error) {
+        resultBox.textContent = 'Unable to process the request: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
